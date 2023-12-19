@@ -16,8 +16,6 @@ class KeyWordSpider(scrapy.Spider):
     }
 
     def parse(self, response):
-        # 假设 'job_category' 对应的是 '互联网IT'，这个值在您的截图中是一个包含在 <a> 标签内的文本。
-        # 使用相对路径来确保能够遍历所有的类别
         for job_category in response.xpath('//*[@id="root"]/main/div[1]/div[1]/ol/li'):
             item = KeyWordItem()
             # 提取 'job_category'，即每个类别的名称

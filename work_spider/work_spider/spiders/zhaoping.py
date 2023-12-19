@@ -79,27 +79,31 @@ class ZhaopingSpider(scrapy.Spider):
 
 
     def parse_item(self, response):
-        job_list = response.xpath('//*[@id="positionList-hook"]/div')
+        job_list = response.xpath('//div[@class="positionlist"]/div[contains(@class, "joblist-box__item")]')
         for job in job_list:
             item = WorkSpiderItem()
-            item['url'] = job.xpath('//a[contains(@class, "joblist-box__iteminfo")]/@href').extract_first()
+            item['url'] = job.xpath('.//a[contains(@class, "joblist-box__iteminfo")]/@href').extract_first()
+
             item['job_name'] = job.xpath('.//span[@class="iteminfo__line1__jobname__name"]/text()').extract_first()
             item['company'] = job.xpath('.//span[@class="iteminfo__line1__compname__name"]/text()').extract_first()
             item['address'] = job.xpath('.//li[@class="iteminfo__line2__jobdesc__demand__item"][1]/text()').extract_first()
 
-            item['salary_min'] = response.xpath('//p[@class="iteminfo__line2__jobdesc__salary"]/text()').extract_first().split('-')[0].strip()
-            item['salary_max'] = response.xpath('//p[@class="iteminfo__line2__jobdesc__salary"]/text()').extract_first().split('-')[1].strip()
-            try:
-                item['salary_min'] = self.salary_transform(item['salary_min'])
-                item['salary_max'] = self.salary_transform(item['salary_max'])
-            except:
-                item['salary_min'] = 0
-                item['salary_max'] = 0
+            # 提取薪资字符串
+            salary_text = job.xpath('.//p[@class="iteminfo__line2__jobdesc__salary"]/text()').extract_first()
+
+            # 检查薪资字符串是否存在并且包含预期的分隔符
+            if salary_text and '-' in salary_text:
+                salary_parts = salary_text.split('-')
+                item['salary_min'] = self.salary_transform(salary_parts[0].strip())
+                item['salary_max'] = self.salary_transform(salary_parts[1].strip())
+            else:
+                # 如果没有薪资信息或格式不匹配，可以设为默认值或不设置
+                item['salary_min'] = salary_text
+                item['salary_max'] = salary_text
+
             
             item['education'] = job.xpath('.//li[@class="iteminfo__line2__jobdesc__demand__item"][3]/text()').extract_first()
             item['experience'] = job.xpath('.//li[@class="iteminfo__line2__jobdesc__demand__item"][2]/text()').extract_first()
             # 技能列表可能包含多个元素，因此我们使用 extract() 而不是 extract_first()
             item['content'] = job.xpath('.//div[@class="iteminfo__line3__welfare__item"]/text()').extract()
             yield item
-
-
